@@ -4,40 +4,87 @@
 
 package engine.data
 {
+	import engine.core.Component;
+	import engine.core.Entity;
+
+	import flash.utils.Dictionary;
+
 	public class PartList
 	{
+		public var invalidated:Boolean;
+		public var partType:Class;
+		public var required:PartComponent;
+
+		public var partLookup:Dictionary = new Dictionary();
+		public var partPool:Part;
+		
 		public var head:Part;
 		public var tail:Part;
 		
-		public var added:*;
-		public var removed:*;
+		public var next:PartList;
 
-		public function PartList() {
+		public function PartList(partType:Class) {
+			this.partType = partType;
+			
+			// TODO: parse partType for classes to be stored in "required"
 		}
 
-		public function has(part:Part):Boolean {
-			return part && part.owner == this;
+		public function requires(component:Object):Boolean {
+			var required:PartComponent = this.required;
+			while (required) {
+				var type:Class = required.type;
+				if (component is type || component == type) {
+					return true;
+				}
+			}
+			return false;
 		}
 		
-		public function get(type:Class):* {
-			var part:Part = head;
-			while (part) {
-				if (part is type) {
-					return part;
-				}
-				part = part.next;
-			}
-			return null;
+		public function get(entity:Entity):Part {
+			return partLookup[entity];
 		}
 
-		public function add(part:Part, before:Part = null):Part {
-			if (!part || (part.owner == this && part.next == before)) {
+		public function add(entity:Entity):Part {
+			var part:Part = partLookup[entity];
+			if (part) {
 				return part;
-			} else if (part.owner) {
-				part.owner.remove(part);
+			} else if (partPool) {
+				part = partPool;
+				partPool = part.next;
+			} else {
+				part = new partType;
 			}
 
-			if (before && before.owner == this) {
+			// assign required components
+			var required:PartComponent = this.required;
+			while (required) {
+				var type:Class = required.type;
+				
+				var component:Component = entity.firstComponent;
+				while (component) {
+					if (component is type) {
+						part[required.name] = component;
+						break;
+					}
+				}
+				
+				if (!component) {
+					return null;
+				}
+				required = required.next;
+			}
+			
+			var before:Part;
+			var beforeEntity:Entity = entity.next;
+			while (beforeEntity) {
+				before = partLookup[beforeEntity];
+				if (before) {
+					break;
+				}
+				beforeEntity = beforeEntity.next;
+			}
+
+			if (before) {
 				if (before.prev) {
 					before.prev.next = part;
 					part.prev = before.prev;
@@ -55,21 +102,23 @@ package engine.data
 				}
 				tail = part;
 			}
-			part.owner = this;
 
-			if (added is Function) {
-				added(part);
-			}
+			partLookup[entity] = part;
+			invalidated = true;
+
 			return part;
 		}
 
-		public function remove(part:Part):Part {
-			if (!part || part.owner != this) {
-				return part;
+		public function remove(entity:Entity):void {
+			var part:Part = partLookup[entity];
+			if (!part) {
+				return;
 			}
-			
-			if (removed is Function) {
-				removed(part);
+
+			var required:PartComponent = this.required;
+			while (required) {
+				part[required.name] = null;
+				required = required.next;
 			}
 			
 			if (part.prev) {
@@ -83,11 +132,13 @@ package engine.data
 			} else {
 				tail = part.prev;
 			}
-
+			
 			part.prev = null;
-			part.next = null;
-			part.owner = null;
-			return part;
+			part.next = partPool;
+			partPool = part;
+
+			delete partLookup[entity];
+			invalidated = true;
 		}
 	}
 }

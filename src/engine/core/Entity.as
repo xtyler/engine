@@ -4,28 +4,23 @@
 
 package engine.core
 {
-	import engine.render.Transform;
-
-	import flash.utils.Dictionary;
-
-	public class Entity// extends Transform
+	public class Entity
 	{
 		public var name:String;
-		public var transform:Transform;
-		
+
 		public var engine:Engine;
 		public var prev:Entity;
 		public var next:Entity;
 		public var last:Entity;
-		
+
 		public var firstComponent:Component;
 		public var lastComponent:Component;
-		
-		public function Entity(name:String = null)
-		{
+
+		public function Entity(name:String = null) {
 			this.name = name;
+			last = this;
 		}
-		
+
 		public function hasComponent(component:Component):Boolean {
 			return component && component.entity == this;
 		}
@@ -95,11 +90,11 @@ package engine.core
 				lastComponent = component;
 			}
 			component.entity = this;
-			
+
 			if (engine) {
 				engine.entityChanged(this, component);
 			}
-			
+
 			return component;
 		}
 
@@ -127,7 +122,7 @@ package engine.core
 			if (engine) {
 				engine.entityChanged(this, component);
 			}
-			
+
 			return component;
 		}
 	}

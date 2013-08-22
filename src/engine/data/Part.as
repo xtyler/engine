@@ -6,8 +6,6 @@ package engine.data
 {
 	public class Part
 	{
-		public var owner:PartList;
-		
 		public var prev:Part;
 		public var next:Part;
 		

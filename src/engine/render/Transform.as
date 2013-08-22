@@ -11,9 +11,9 @@ package engine.render
 
 	public class Transform extends Component
 	{
-		static var defaultPosition:Vector3D = new Vector3D(0, 0, 0);
-		static var defaultRotation:Vector3D = new Vector3D(0, 0, 0);
-		static var defaultScale:Vector3D = new Vector3D(1, 1, 1);
+		static public const defaultPosition:Vector3D = new Vector3D(0, 0, 0);
+		static public const defaultRotation:Vector3D = new Vector3D(0, 0, 0);
+		static public const defaultScale:Vector3D = new Vector3D(1, 1, 1);
 		
 		
 		public function get position():Vector3D {
@@ -191,21 +191,21 @@ package engine.render
 			child.parent = null;
 			numChildren--;
 			
-//			var ancestor:Transform = this;
-//			while (ancestor && ancestor.entity.last == child.entity.last) {
-//				ancestor.entity.last = child.entity.prev;
-//				ancestor = ancestor.owner;
-//			}
-//			
-//			if (child.entity.prev) {
-//				child.entity.prev.next = child.entity.last.next;
-//				child.entity.prev = null;
-//			}
-//			if (child.entity.last.next) {
-//				child.entity.last.next.prev = child.entity.prev;
-//				child.entity.last.next = null;
-//			}
-//			child.owner = null;
+			var ancestor:Transform = this;
+			while (ancestor && ancestor.entity.last == child.entity.last) {
+				ancestor.entity.last = child.entity.prev;
+				ancestor = ancestor.owner;
+			}
+			
+			if (child.entity.prev) {
+				child.entity.prev.next = child.entity.last.next;
+				child.entity.prev = null;
+			}
+			if (child.entity.last.next) {
+				child.entity.last.next.prev = child.entity.prev;
+				child.entity.last.next = null;
+			}
+			child.owner = null;
 			
 			return child;
 		}

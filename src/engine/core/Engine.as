@@ -4,10 +4,18 @@
 
 package engine.core
 {
+	import engine.core.Entity;
+	import engine.data.Part;
+	import engine.data.PartList;
+	import engine.data.PartComponent;
+	import engine.render.Transform;
+
 	public class Engine
 	{
 		public var firstSystem:System;
 		public var lastSystem:System;
+		
+		public var firstPartList:PartList;
 		
 		public var firstEntity:Entity;
 		public var lastEntity:Entity;
@@ -16,18 +24,26 @@ package engine.core
 		{
 		}
 
-		// TODO: consider moving these into entity
-		public function entityAdded(entity:Entity):void {
-		}
-		public function entityRemoved(entity:Entity):void {
-		}
-		public function entityChanged(entity:Entity, component:Component):void {
-		}
-		
-		
-		
+		public function getPartList(partType:Class):PartList {
+			var partList:PartList = firstPartList;
+			while (partList) {
+				if (partList.partType == partType) {
+					return partList;
+				}
+			}
 
-
+			partList = new PartList(partType);
+			partList.next = firstPartList;
+			firstPartList = partList;
+			
+			var entity:Entity = firstEntity;
+			while (entity) {
+				
+			}
+			
+			return partList;
+		}
+		
 		public function hasSystem(system:System):Boolean {
 			return system && system.engine == this;
 		}
@@ -118,8 +134,9 @@ package engine.core
 				entity.engine.removeEntity(entity);
 			}
 			
-			if (entity.transform.parent) {
-				entity.transform.parent.remove(entity.transform);
+			var transform:Transform = entity.getComponent(Transform);
+			if (transform && transform.parent) {
+				transform.parent.remove(transform);
 			}
 
 			if (before && before.engine == this) {
@@ -140,7 +157,9 @@ package engine.core
 				}
 				lastEntity = entity;
 			}
-			entity.engine = this;
+			
+			entityAdded(entity);
+			
 			return entity;
 		}
 
@@ -148,6 +167,8 @@ package engine.core
 			if (!entity || entity.engine != this) {
 				return entity;
 			}
+			
+			entityRemoved(entity);
 
 			if (entity.prev) {
 				entity.prev.next = entity.next;
@@ -163,8 +184,109 @@ package engine.core
 
 			entity.prev = null;
 			entity.next = null;
-			entity.engine = null;
+			
 			return entity;
+		}
+
+
+		public function entityAdded(entity:Entity):void {
+			// update reference to engine throughout hierarchy
+			var stop:Entity = entity.last.next;
+			while (entity != stop) {
+				entity.engine = this;
+
+				// update part lists
+				var partList:PartList = firstPartList;
+				while (partList) {
+
+					// validate required component types
+					var required:PartComponent = partList.required;
+					while (required) {
+						var component:Component = entity.firstComponent;
+						while (component) {
+							if (component is required.type) {
+								break;
+							}
+						}
+						if (!component) {				// requirement was not found
+							break;
+						}
+						required = required.next;
+					}
+
+					if (!required) {					// all requirements were met
+						partList.add(entity);
+					}
+
+					partList = partList.next;
+				}
+
+				entity = entity.next;
+			}
+		}
+
+		public function entityRemoved(entity:Entity):void {
+			// update reference to engine throughout hierarchy
+			var current:Entity = entity;
+			var stop:Entity = entity.last.next;
+			while (current != stop) {
+				current.engine = null;
+
+				// update part lists
+				var partList:PartList = firstPartList;
+				while (partList) {
+					if (partList.partLookup[entity]) {
+						partList.remove(entity);
+					}
+					partList = partList.next;
+				}
+
+				current = current.next;
+			}
+		}
+
+		public function entityChanged(entity:Entity, component:Component):void {
+			// update part lists
+			var partList:PartList = firstPartList;
+			while (partList) {
+
+				// initial check to verify relevance
+				var required:PartComponent = partList.required;
+				while (required) {
+					if (component is required.type) {	// component is relevant to this list
+						break;
+					}
+					required = required.next;
+				}
+
+				if (required) {
+					// validate required component types
+					required = partList.required;
+					while (required) {
+						component = entity.firstComponent;
+						while (component) {
+							if (component is required.type) {
+								break;
+							}
+						}
+						if (!component) {				// requirement was not found
+							break;
+						}
+						required = required.next;
+					}
+
+					var part:Part = partList.partLookup[entity];
+					if (!required) {					// all requirements were met
+						if (!part) {
+							partList.add(entity);
+						}
+					} else if (part) {
+						partList.remove(entity);
+					}
+				}
+
+				partList = partList.next;
+			}
 		}
 	}
 }
