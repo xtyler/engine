@@ -15,8 +15,12 @@ package engine.time
 	 * Time is a core system responsible for running updates on all other
 	 * systems, and for providing time measurement in seconds.
 	 */
-	public class Time extends System
+	public class TimeSystem extends System
 	{
+		public static const UPDATE:uint = 1;
+		public static const FIXED_UPDATE:uint = 2;
+		public static const RENDER:uint = 4;
+		
 		public var total:Number = 0;
 		public var delta:Number = 0;
 		public var fixed:Number = 0;
@@ -28,7 +32,8 @@ package engine.time
 		private var systemMs:Number;
 		private var ticker:DisplayObject;
 
-		public function Time(engine:Engine) {
+		// TODO: build Braid from scratch
+		public function TimeSystem(engine:Engine) {
 			this.engine = engine;
 
 			ticker = new Shape();
@@ -36,9 +41,9 @@ package engine.time
 		}
 
 		private function tick(event:Event):void {
-			
+
 			// ====== Calculate Time ====== //
-			
+
 			var currentMs:Number = new Date().getTime();
 			// keep calculations in Milliseconds to reduce floating point errors.
 			if (systemMs) {
@@ -48,17 +53,17 @@ package engine.time
 				total = totalMs / 1000;
 			}
 			systemMs = currentMs;
-			
+
 			// ====== Update Systems ====== //
-			
+
 			// initialize systems
 			var system:System = engine.firstSystem;
 			while (system) {
 				if (!system.initialized) {
-					system.start(this);
+					system.start();
 					system.initialized = true;
 				}
-				system = system.next;
+				system = system.nextSystem;
 			}
 
 			// run none->all updates tied to a fixed interval
@@ -67,8 +72,10 @@ package engine.time
 					fixed = fixedMs / 1000;
 					system = engine.firstSystem;
 					while (system) {
-						system.fixedUpdate(this);
-						system = system.next;
+						if (~system.abstract & FIXED_UPDATE) {
+							system.fixedUpdate();
+						}
+						system = system.nextSystem;
 					}
 					fixedMs += fixedDelta * 1000;
 				}
@@ -77,8 +84,10 @@ package engine.time
 					fixed = fixedMs / 1000;
 					system = engine.firstSystem;
 					while (system) {
-						system.fixedUpdate(this);
-						system = system.next;
+						if (~system.abstract & FIXED_UPDATE) {
+							system.fixedUpdate();
+						}
+						system = system.nextSystem;
 					}
 					fixedMs -= fixedDelta * 1000;
 				}
@@ -87,15 +96,19 @@ package engine.time
 			// run regular updates
 			system = engine.firstSystem;
 			while (system) {
-				system.update(this);
-				system = system.next;
+				if (~system.abstract & UPDATE) {
+					system.update();
+				}
+				system = system.nextSystem;
 			}
 
 			// run final updates for rendering
 			system = engine.firstSystem;
 			while (system) {
-				system.render(this);
-				system = system.next;
+				if (~system.abstract & RENDER) {
+					system.render();
+				}
+				system = system.nextSystem;
 			}
 		}
 	}

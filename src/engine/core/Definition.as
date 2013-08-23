@@ -2,13 +2,13 @@
  * Copyright (c) 2013 Revolv Studios.
  */
 
-package engine.data
+package engine.core
 {
-	public class PartComponent
+	internal class Definition
 	{
 		public var name:String;
 		public var type:Class;
 		
-		public var next:PartComponent;
+		public var next:Definition;
 	}
 }

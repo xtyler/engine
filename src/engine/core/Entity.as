@@ -4,21 +4,27 @@
 
 package engine.core
 {
-	public class Entity
+	import engine.render.Transform;
+
+	public class Entity extends Transform
 	{
 		public var name:String;
 
 		public var engine:Engine;
-		public var prev:Entity;
-		public var next:Entity;
-		public var last:Entity;
+		public var prevEntity:Entity;
+		public var nextEntity:Entity;
+		public var lastEntity:Entity;
 
 		public var firstComponent:Component;
 		public var lastComponent:Component;
 
 		public function Entity(name:String = null) {
 			this.name = name;
-			last = this;
+			lastEntity = this;
+			
+			// set up Transform (this) as a permanent component
+			firstComponent = lastComponent = this;
+			firstComponent.entity = this;
 		}
 
 		public function hasComponent(component:Component):Boolean {
@@ -31,7 +37,7 @@ package engine.core
 				if (component is type) {
 					return component;
 				}
-				component = component.next;
+				component = component.nextComponent;
 			}
 			return null;
 		}
@@ -43,47 +49,47 @@ package engine.core
 				if (component is type) {
 					components.push(component);
 				}
-				component = component.next;
+				component = component.nextComponent;
 			}
 			return components;
 		}
 
 		public function getComponentsInChildren(type:Class):* {
 			var components:Array = [];
-			var child:Entity = next;
-			while (child != last.next) {
+			var child:Entity = nextEntity;
+			while (child != lastEntity.nextEntity) {
 				var component:Component = firstComponent;
 				while (component) {
 					if (component is type) {
 						components.push(component);
 					}
-					component = component.next;
+					component = component.nextComponent;
 				}
-				child = child.next;
+				child = child.nextEntity;
 			}
 			return components;
 		}
 
 		public function addComponent(component:Component, before:Component = null):* {
-			if (!component || (component.entity == this && component.next == before)) {
+			if (!component || (component.entity == this && component.nextComponent == before)) {
 				return component;
 			} else if (component.entity) {
 				component.entity.removeComponent(component);
 			}
 
 			if (before && before.entity == this) {
-				if (before.prev) {
-					before.prev.next = component;
-					component.prev = before.prev;
+				if (before.prevComponent) {
+					before.prevComponent.nextComponent = component;
+					component.prevComponent = before.prevComponent;
 				} else {
 					firstComponent = component;
 				}
-				component.next = before;
-				before.prev = component;
+				component.nextComponent = before;
+				before.prevComponent = component;
 			} else {
 				if (lastComponent) {
-					lastComponent.next = component;
-					component.prev = lastComponent;
+					lastComponent.nextComponent = component;
+					component.prevComponent = lastComponent;
 				} else {
 					firstComponent = component;
 				}
@@ -103,20 +109,20 @@ package engine.core
 				return component;
 			}
 
-			if (component.prev) {
-				component.prev.next = component.next;
+			if (component.prevComponent) {
+				component.prevComponent.nextComponent = component.nextComponent;
 			} else {
-				firstComponent = component.next;
+				firstComponent = component.nextComponent;
 			}
 
-			if (component.next) {
-				component.next.prev = component.prev;
+			if (component.nextComponent) {
+				component.nextComponent.prevComponent = component.prevComponent;
 			} else {
-				lastComponent = component.prev;
+				lastComponent = component.prevComponent;
 			}
 
-			component.prev = null;
-			component.next = null;
+			component.prevComponent = null;
+			component.nextComponent = null;
 			component.entity = null;
 
 			if (engine) {

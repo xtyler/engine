@@ -2,50 +2,48 @@
  * Copyright (c) 2013 Revolv Studios.
  */
 
-package engine.data
+package engine.core
 {
-	import engine.core.Component;
-	import engine.core.Entity;
-
 	import flash.utils.Dictionary;
+	import flash.utils.getQualifiedClassName;
 
-	public class PartList
+	public class Parts
 	{
 		public var invalidated:Boolean;
 		public var partType:Class;
-		public var required:PartComponent;
+		public var required:PropDefinition;
 
 		public var partLookup:Dictionary = new Dictionary();
-		public var partPool:Part;
+		public var partPool:*;
 		
-		public var head:Part;
-		public var tail:Part;
+		public var head:*;
+		public var tail:*;
 		
-		public var next:PartList;
+		public var next:Parts;
 
-		public function PartList(partType:Class) {
+		public function Parts(partType:Class) {
 			this.partType = partType;
-			
-			// TODO: parse partType for classes to be stored in "required"
-		}
-
-		public function requires(component:Object):Boolean {
-			var required:PartComponent = this.required;
-			while (required) {
-				var type:Class = required.type;
-				if (component is type || component == type) {
-					return true;
-				}
+			partPool = new partType();
+			if (!("prev" in partPool) || !("next" in partPool)) {
+				throw new Error("Part " + getQualifiedClassName(partType).split("::").pop() + " must implement public variables 'prev' and 'next'.");
 			}
-			return false;
-		}
-		
-		public function get(entity:Entity):Part {
-			return partLookup[entity];
+			
+			if ("required" in partType) {
+				var definition:Object = partType.required;
+				for (var name:String in definition) {
+					var required:PropDefinition = new PropDefinition();
+					required.name = name;
+					required.type = definition[name];
+					required.next = this.required;
+					this.required = required;
+				}
+			} else {
+				throw new Error("Part " + getQualifiedClassName(partType).split("::").pop() + " must implement public static variable 'required'.");
+			}
 		}
 
-		public function add(entity:Entity):Part {
-			var part:Part = partLookup[entity];
+		public function add(entity:Entity):* {
+			var part:* = partLookup[entity];
 			if (part) {
 				return part;
 			} else if (partPool) {
@@ -56,7 +54,7 @@ package engine.data
 			}
 
 			// assign required components
-			var required:PartComponent = this.required;
+			var required:PropDefinition = this.required;
 			while (required) {
 				var type:Class = required.type;
 				
@@ -66,6 +64,7 @@ package engine.data
 						part[required.name] = component;
 						break;
 					}
+					component = component.nextComponent;
 				}
 				
 				if (!component) {
@@ -74,14 +73,14 @@ package engine.data
 				required = required.next;
 			}
 			
-			var before:Part;
-			var beforeEntity:Entity = entity.next;
+			var before:*;
+			var beforeEntity:Entity = entity.nextEntity;
 			while (beforeEntity) {
 				before = partLookup[beforeEntity];
 				if (before) {
 					break;
 				}
-				beforeEntity = beforeEntity.next;
+				beforeEntity = beforeEntity.nextEntity;
 			}
 
 			if (before) {
@@ -110,12 +109,12 @@ package engine.data
 		}
 
 		public function remove(entity:Entity):void {
-			var part:Part = partLookup[entity];
+			var part:* = partLookup[entity];
 			if (!part) {
 				return;
 			}
 
-			var required:PartComponent = this.required;
+			var required:PropDefinition = this.required;
 			while (required) {
 				part[required.name] = null;
 				required = required.next;
@@ -141,4 +140,12 @@ package engine.data
 			invalidated = true;
 		}
 	}
+}
+
+internal class PropDefinition
+{
+	public var name:String;
+	public var type:Class;
+
+	public var next:PropDefinition;
 }

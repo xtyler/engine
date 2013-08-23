@@ -4,46 +4,102 @@
 
 package engine.core
 {
-	import engine.core.Entity;
-	import engine.data.Part;
-	import engine.data.PartList;
-	import engine.data.PartComponent;
 	import engine.render.Transform;
+	import engine.time.TimeSystem;
 
 	public class Engine
 	{
-		public var firstSystem:System;
-		public var lastSystem:System;
-		
-		public var firstPartList:PartList;
-		
+		public var time:TimeSystem;
+
 		public var firstEntity:Entity;
 		public var lastEntity:Entity;
-		
-		public function Engine()
-		{
+
+		public var firstSystem:System;
+		public var lastSystem:System;
+
+		public var parts:Parts;
+
+		public function Engine() {
+			firstSystem = lastSystem = new TimeSystem(this);
+			firstSystem.engine = this;
 		}
 
-		public function getPartList(partType:Class):PartList {
-			var partList:PartList = firstPartList;
-			while (partList) {
-				if (partList.partType == partType) {
-					return partList;
-				}
-			}
+		public function hasEntity(entity:Entity):Boolean {
+			return entity && entity.engine == this;
+		}
 
-			partList = new PartList(partType);
-			partList.next = firstPartList;
-			firstPartList = partList;
-			
+		public function getEntity(name:String):Entity {
 			var entity:Entity = firstEntity;
 			while (entity) {
-				
+				if (entity.name == name) {
+					return entity;
+				}
+				entity = entity.nextEntity;
 			}
-			
-			return partList;
+			return null;
 		}
-		
+
+		public function addEntity(entity:Entity, before:Entity = null):Entity {
+			if (!entity || (entity.engine == this && entity.nextEntity == before)) {
+				return entity;
+			} else if (entity.engine) {
+				entity.engine.removeEntity(entity);
+			}
+
+			var transform:Transform = entity.getComponent(Transform);
+			if (transform && transform.parent) {
+				transform.parent.remove(transform);
+			}
+
+			if (before && before.engine == this) {
+				if (before.prevEntity) {
+					before.prevEntity.nextEntity = entity;
+					entity.prevEntity = before.prevEntity;
+				} else {
+					firstEntity = entity;
+				}
+				entity.nextEntity = before;
+				before.prevEntity = entity;
+			} else {
+				if (lastEntity) {
+					lastEntity.nextEntity = entity;
+					entity.prevEntity = lastEntity;
+				} else {
+					firstEntity = entity;
+				}
+				lastEntity = entity;
+			}
+
+			entityAdded(entity);
+
+			return entity;
+		}
+
+		public function removeEntity(entity:Entity):Entity {
+			if (!entity || entity.engine != this) {
+				return entity;
+			}
+
+			entityRemoved(entity);
+
+			if (entity.prevEntity) {
+				entity.prevEntity.nextEntity = entity.nextEntity;
+			} else {
+				firstEntity = entity.nextEntity;
+			}
+
+			if (entity.nextEntity) {
+				entity.nextEntity.prevEntity = entity.prevEntity;
+			} else {
+				lastEntity = entity.prevEntity;
+			}
+
+			entity.prevEntity = null;
+			entity.nextEntity = null;
+
+			return entity;
+		}
+
 		public function hasSystem(system:System):Boolean {
 			return system && system.engine == this;
 		}
@@ -54,31 +110,41 @@ package engine.core
 				if (system is type) {
 					return system;
 				}
-				system = system.next;
+				system = system.nextSystem;
 			}
 			return null;
 		}
 
 		public function addSystem(system:System, before:System = null):* {
-			if (!system || (system.engine == this && system.next == before)) {
+			if (!system || (system.engine == this && system.nextSystem == before)) {
 				return system;
 			} else if (system.engine) {
 				system.engine.removeSystem(system);
 			}
+			
+			// check to ensure System type is unique
+			var type:Class = system.constructor;
+			var system:System = firstSystem;
+			while (system) {
+				if (system is type) {
+					return system;
+				}
+				system = system.nextSystem;
+			}
 
 			if (before && before.engine == this) {
-				if (before.prev) {
-					before.prev.next = system;
-					system.prev = before.prev;
+				if (before.prevSystem) {
+					before.prevSystem.nextSystem = system;
+					system.prevSystem = before.prevSystem;
 				} else {
 					firstSystem = system;
 				}
-				system.next = before;
-				before.prev = system;
+				system.nextSystem = before;
+				before.prevSystem = system;
 			} else {
 				if (lastSystem) {
-					lastSystem.next = system;
-					system.prev = lastSystem;
+					lastSystem.nextSystem = system;
+					system.prevSystem = lastSystem;
 				} else {
 					firstSystem = system;
 				}
@@ -93,114 +159,80 @@ package engine.core
 				return system;
 			}
 
-			if (system.prev) {
-				system.prev.next = system.next;
+			if (system.prevSystem) {
+				system.prevSystem.nextSystem = system.nextSystem;
 			} else {
-				firstSystem = system.next;
+				firstSystem = system.nextSystem;
 			}
 
-			if (system.next) {
-				system.next.prev = system.prev;
+			if (system.nextSystem) {
+				system.nextSystem.prevSystem = system.prevSystem;
 			} else {
-				lastSystem = system.prev;
+				lastSystem = system.prevSystem;
 			}
 
-			system.prev = null;
-			system.next = null;
+			system.prevSystem = null;
+			system.nextSystem = null;
 			system.engine = null;
 			return system;
 		}
 
+		public function getParts(partType:Class):Parts {
+			var parts:Parts = this.parts;
+			while (parts) {
+				if (parts.partType == partType) {
+					return parts;
+				}
+				parts = parts.next;
+			}
 
-		public function hasEntity(entity:Entity):Boolean {
-			return entity && entity.engine == this;
-		}
+			parts = new Parts(partType);
+			parts.next = this.parts;
+			this.parts = parts;
 
-		public function getEntity(name:String):* {
+			// search entire 
 			var entity:Entity = firstEntity;
 			while (entity) {
-				if (entity.name == name) {
-					return entity;
+
+				// validate required component types
+				var required:Definition = parts.required;
+				while (required) {
+					var component:Component = entity.firstComponent;
+					while (component) {
+						if (component is required.type) {
+							break;
+						}
+						component = component.nextComponent;
+					}
+					if (!component) {				// requirement was not found
+						break;
+					}
+					required = required.next;
 				}
-				entity = entity.next;
-			}
-			return null;
-		}
 
-		public function addEntity(entity:Entity, before:Entity = null):* {
-			if (!entity || (entity.engine == this && entity.next == before)) {
-				return entity;
-			} else if (entity.engine) {
-				entity.engine.removeEntity(entity);
-			}
-			
-			var transform:Transform = entity.getComponent(Transform);
-			if (transform && transform.parent) {
-				transform.parent.remove(transform);
-			}
-
-			if (before && before.engine == this) {
-				if (before.prev) {
-					before.prev.next = entity;
-					entity.prev = before.prev;
-				} else {
-					firstEntity = entity;
+				if (!required) {					// all requirements were met
+					parts.add(entity);
 				}
-				entity.next = before;
-				before.prev = entity;
-			} else {
-				if (lastEntity) {
-					lastEntity.next = entity;
-					entity.prev = lastEntity;
-				} else {
-					firstEntity = entity;
-				}
-				lastEntity = entity;
-			}
-			
-			entityAdded(entity);
-			
-			return entity;
-		}
 
-		public function removeEntity(entity:Entity):* {
-			if (!entity || entity.engine != this) {
-				return entity;
-			}
-			
-			entityRemoved(entity);
-
-			if (entity.prev) {
-				entity.prev.next = entity.next;
-			} else {
-				firstEntity = entity.next;
+				entity = entity.nextEntity;
 			}
 
-			if (entity.next) {
-				entity.next.prev = entity.prev;
-			} else {
-				lastEntity = entity.prev;
-			}
-
-			entity.prev = null;
-			entity.next = null;
-			
-			return entity;
+			return parts;
 		}
 
 
 		public function entityAdded(entity:Entity):void {
 			// update reference to engine throughout hierarchy
-			var stop:Entity = entity.last.next;
+			var stop:Entity = entity.lastEntity.nextEntity;
 			while (entity != stop) {
 				entity.engine = this;
 
 				// update part lists
-				var partList:PartList = firstPartList;
-				while (partList) {
+				var parts:Parts = this.parts;
+				while (parts) {
 
 					// validate required component types
-					var required:PartComponent = partList.required;
+					var required:Definition = parts.required;
 					while (required) {
 						var component:Component = entity.firstComponent;
 						while (component) {
@@ -215,43 +247,43 @@ package engine.core
 					}
 
 					if (!required) {					// all requirements were met
-						partList.add(entity);
+						parts.add(entity);
 					}
 
-					partList = partList.next;
+					parts = parts.next;
 				}
 
-				entity = entity.next;
+				entity = entity.nextEntity;
 			}
 		}
 
 		public function entityRemoved(entity:Entity):void {
 			// update reference to engine throughout hierarchy
 			var current:Entity = entity;
-			var stop:Entity = entity.last.next;
+			var stop:Entity = entity.lastEntity.nextEntity;
 			while (current != stop) {
 				current.engine = null;
 
 				// update part lists
-				var partList:PartList = firstPartList;
-				while (partList) {
-					if (partList.partLookup[entity]) {
-						partList.remove(entity);
+				var parts:Parts = this.parts;
+				while (parts) {
+					if (parts.partLookup[entity]) {
+						parts.remove(entity);
 					}
-					partList = partList.next;
+					parts = parts.next;
 				}
 
-				current = current.next;
+				current = current.nextEntity;
 			}
 		}
 
 		public function entityChanged(entity:Entity, component:Component):void {
 			// update part lists
-			var partList:PartList = firstPartList;
-			while (partList) {
+			var parts:Parts = this.parts;
+			while (parts) {
 
 				// initial check to verify relevance
-				var required:PartComponent = partList.required;
+				var required:Definition = parts.required;
 				while (required) {
 					if (component is required.type) {	// component is relevant to this list
 						break;
@@ -261,7 +293,7 @@ package engine.core
 
 				if (required) {
 					// validate required component types
-					required = partList.required;
+					required = parts.required;
 					while (required) {
 						component = entity.firstComponent;
 						while (component) {
@@ -275,17 +307,17 @@ package engine.core
 						required = required.next;
 					}
 
-					var part:Part = partList.partLookup[entity];
+					var part:* = parts.partLookup[entity];
 					if (!required) {					// all requirements were met
 						if (!part) {
-							partList.add(entity);
+							parts.add(entity);
 						}
 					} else if (part) {
-						partList.remove(entity);
+						parts.remove(entity);
 					}
 				}
 
-				partList = partList.next;
+				parts = parts.next;
 			}
 		}
 	}

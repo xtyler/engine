@@ -4,34 +4,34 @@
 
 package engine.core
 {
-	import engine.time.Time;
+	import engine.time.TimeSystem;
 
 	public class System
 	{
 		public var initialized:Boolean;
-		
+
 		public var engine:Engine;
-		public var prev:System;
-		public var next:System;
+		public var prevSystem:System;
+		public var nextSystem:System;
 		
-		public function System()
-		{
+		public var abstract:uint;
+		
+		public function System() {
 		}
-		
-		public function start(time:Time):void
-		{
+
+		public function start():void {
 		}
-		
-		public function fixedUpdate(time:Time):void
-		{
+
+		public function update():void {
+			abstract |= TimeSystem.UPDATE;
 		}
-		
-		public function update(time:Time):void
-		{
+
+		public function fixedUpdate():void {
+			abstract |= TimeSystem.FIXED_UPDATE;
 		}
-		
-		public function render(time:Time):void
-		{
+
+		public function render():void {
+			abstract |= TimeSystem.RENDER;
 		}
 	}
 }
