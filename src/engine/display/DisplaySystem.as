@@ -15,7 +15,10 @@ package engine.display
 		}
 
 		override public function start():void {
-			
+			displayObjectParts = engine.getParts(DisplayPart);
+		}
+
+		override public function update():void {
 		}
 	}
 }

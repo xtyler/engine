@@ -12,7 +12,7 @@ package engine.animation
 		public var prev:AnimationPart;
 		public var next:AnimationPart;
 
-		public static const required:Object = {
+		public static var required:Object = {
 			animation:Animation
 		};
 	}

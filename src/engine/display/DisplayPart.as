@@ -13,9 +13,14 @@ package engine.display
 		public var transform:Transform;
 		
 		[Required]
-		public var displayProperties:Component;
-		
-		public function DisplayPart() {
-		}
+		public var display:Display;
+
+		public var prev:DisplayPart;
+		public var next:DisplayPart;
+
+		public static var required:Object = {
+			transform:Transform,
+			display:Display
+		};
 	}
 }
