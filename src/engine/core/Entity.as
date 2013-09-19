@@ -4,9 +4,7 @@
 
 package engine.core
 {
-	import engine.render.Transform;
-
-	public class Entity extends Transform
+	public class Entity
 	{
 		public var name:String;
 
@@ -21,10 +19,6 @@ package engine.core
 		public function Entity(name:String = null) {
 			this.name = name;
 			lastEntity = this;
-			
-			// set up Transform (this) as a permanent component
-			firstComponent = lastComponent = this;
-			firstComponent.entity = this;
 		}
 
 		public function hasComponent(component:Component):Boolean {
@@ -42,7 +36,7 @@ package engine.core
 			return null;
 		}
 
-		public function getComponents(type:Class):* {
+		public function getComponents(type:Class):Array {
 			var components:Array = [];
 			var component:Component = firstComponent;
 			while (component) {
@@ -54,7 +48,22 @@ package engine.core
 			return components;
 		}
 
-		public function getComponentsInChildren(type:Class):* {
+		public function getComponentInChildren(type:Class):* {
+			var child:Entity = nextEntity;
+			while (child != lastEntity.nextEntity) {
+				var component:Component = firstComponent;
+				while (component) {
+					if (component is type) {
+						return component;
+					}
+					component = component.nextComponent;
+				}
+				child = child.nextEntity;
+			}
+			return null;
+		}
+
+		public function getComponentsInChildren(type:Class):Array {
 			var components:Array = [];
 			var child:Entity = nextEntity;
 			while (child != lastEntity.nextEntity) {

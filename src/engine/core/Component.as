@@ -9,7 +9,7 @@ package engine.core
 		public var entity:Entity;
 		public var prevComponent:Component;
 		public var nextComponent:Component;
-		
+
 		public function Component() {
 		}
 	}

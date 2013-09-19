@@ -14,7 +14,7 @@ package engine.render
 		static public const defaultPosition:Vector3D = new Vector3D(0, 0, 0);
 		static public const defaultRotation:Vector3D = new Vector3D(0, 0, 0);
 		static public const defaultScale:Vector3D = new Vector3D(1, 1, 1);
-		
+
 		public function get position():Vector3D {
 			return _position != defaultPosition ? _position : (_position = defaultPosition.clone());
 		}
@@ -29,36 +29,105 @@ package engine.render
 			return _scale != defaultScale ? _scale : (_scale = defaultScale.clone());
 		}
 		internal var _scale:Vector3D = defaultScale;
-		
+
 		public var parent:Transform;
 		public var numChildren:uint;
 		public var firstChild:Transform;
 		public var lastChild:Transform;
 		public var previousSibling:Transform;
 		public var nextSibling:Transform;
-		
-		// TODO: implement logical tree vs display tree
-		public var owner:Transform;
-		public var skin:Transform;
+
+		public var space:Transform;
+		public var background:Transform;
 		public var content:Transform;
-		
+
 		public function Transform() {
 		}
-		
+
+		public function setBackground(background:Transform, content:Transform = null):void {
+			// remove current background
+			if (this.background) {
+
+				var lastEntity:Entity;
+				if (firstChild) {
+
+
+
+					// remove children from background
+					if (this.content) {
+						this.content.entity.nextEntity = this.content.entity.lastEntity.nextEntity;
+
+						this.content.entity.lastEntity = this.content.entity;
+					} else {
+						this.content.entity.nextEntity = this.content.entity.lastEntity.nextEntity;
+						this.content.entity.lastEntity = this.content.entity;
+					}
+
+					this.background.entity.prevEntity = null;
+					this.background.entity.lastEntity.nextEntity = null;
+
+
+					firstChild.entity.prevEntity = entity;
+					entity.nextEntity = firstChild.entity;
+
+					lastEntity = lastChild.entity.lastEntity;
+					lastEntity.nextEntity = entity.lastEntity.nextEntity;
+					entity.lastEntity.nextEntity.prevEntity = lastEntity;
+
+					var child:Transform = firstChild;
+					while (child) {
+						child.space = this;
+						child = child.nextSibling;
+					}
+				} else {
+					lastEntity = entity;
+				}
+
+				var ancestor:Transform = space;
+				while (ancestor &&
+						ancestor.entity.lastEntity == entity.lastEntity) {
+					ancestor.entity.lastEntity = lastEntity;
+					ancestor = ancestor.space;
+				}
+				entity.lastEntity = lastEntity;
+
+			}
+//			// support for backgrounds, background content and background content default children
+//			if (background) {
+//				if (content) {
+//					// remove any content default children
+//					if (content.firstChild) {
+//						content.removeAll();
+//					}
+//					if (prevEntity == entity) {
+//						prevEntity = content.entity;
+//					}
+//					child.space = content;
+//				} else {
+//					// without a content area, treat background as a background
+//					if (prevEntity == entity) {
+//						prevEntity = background.entity.lastEntity;
+//					}
+//					child.space = Transform(background.entity.lastEntity);
+//				}
+//			}
+
+			this.background = background;
+		}
+
 		public function has(child:Transform):Boolean {
 			return child && child.parent == this;
 		}
-		
+
 		public function add(child:Transform, before:Transform = null):Transform {
 			if (!child || (child.parent == this && child.nextSibling == before)) {
 				return child;
 			} else if (child.parent) {
 				child.parent.remove(child);
 			}
-			
+
 			var prevEntity:Entity;
 			var nextEntity:Entity;
-			var content:Entity = skin && skin.content ? skin.content.entity : null;
 
 			if (before && before.parent == this) {
 				if (before.previousSibling) {
@@ -67,7 +136,7 @@ package engine.render
 					prevEntity = child.previousSibling.entity.lastEntity;
 				} else {
 					firstChild = child;
-					prevEntity = content ? content : entity;
+					prevEntity = entity;
 				}
 				child.nextSibling = before;
 				before.previousSibling = child;
@@ -78,22 +147,37 @@ package engine.render
 					prevEntity = lastChild.entity.lastEntity;
 				} else {
 					firstChild = child;
-					prevEntity = content ? content : entity;
+					prevEntity = entity;
 				}
 				lastChild = child;
-				
-				var ancestor:Transform = owner;
-				while (ancestor && ancestor.entity.lastEntity == entity.lastEntity) {
-					ancestor.entity.lastEntity = child.entity.lastEntity;
-					ancestor = ancestor.owner;
-				}
-				entity.lastEntity = child.entity.lastEntity;
 			}
 			child.parent = this;
 			numChildren++;
-			
+
+			child.space = this;
+
 			if (prevEntity) {
-				nextEntity = content ? content.lastEntity.nextEntity : prevEntity.nextEntity;
+				// support for backgrounds, background content and background content default children
+				if (background) {
+					if (content) {
+						// remove any content default children
+						if (content.firstChild) {
+							content.removeAll();
+						}
+						if (prevEntity == entity) {
+							prevEntity = content.entity;
+						}
+						child.space = content;
+					} else {
+						// without a content area, treat background as a background
+						if (prevEntity == entity) {
+							prevEntity = background.entity.lastEntity;
+						}
+						child.space = Transform(background.entity.lastEntity);
+					}
+				}
+
+				nextEntity = prevEntity.nextEntity;
 				prevEntity.nextEntity = child.entity;
 				child.entity.prevEntity = prevEntity;
 			}
@@ -101,24 +185,30 @@ package engine.render
 				nextEntity.prevEntity = child.entity.lastEntity;
 				child.entity.lastEntity.nextEntity = nextEntity;
 			}
-			child.owner = this;
-			
+
+			var ancestor:Transform = child.space;
+			while (ancestor &&
+					ancestor.entity.lastEntity == child.space.entity.lastEntity) {
+				ancestor.entity.lastEntity = child.entity.lastEntity;
+				ancestor = ancestor.space;
+			}
+
 			if (entity.engine) {
 				entity.engine.entityAdded(child.entity);
 			}
-			
+
 			return child;
 		}
-		
+
 		public function remove(child:Transform):Transform {
 			if (!child || child.parent != this) {
 				return child;
 			}
-			
+
 			if (entity.engine) {
 				entity.engine.entityRemoved(child.entity);
 			}
-			
+
 			if (child.previousSibling) {
 				child.previousSibling.nextSibling = child.nextSibling;
 			} else {
@@ -134,13 +224,14 @@ package engine.render
 			child.nextSibling = null;
 			child.parent = null;
 			numChildren--;
-			
-			var ancestor:Transform = this;
-			while (ancestor && ancestor.entity.lastEntity == child.entity.lastEntity) {
+
+			var ancestor:Transform = child.space;
+			while (ancestor &&
+					ancestor.entity.lastEntity == child.entity.lastEntity) {
 				ancestor.entity.lastEntity = child.entity.prevEntity;
-				ancestor = ancestor.owner;
+				ancestor = ancestor.space;
 			}
-			
+
 			if (child.entity.prevEntity) {
 				child.entity.prevEntity.nextEntity = child.entity.lastEntity.nextEntity;
 				child.entity.prevEntity = null;
@@ -149,12 +240,52 @@ package engine.render
 				child.entity.lastEntity.nextEntity.prevEntity = child.entity.prevEntity;
 				child.entity.lastEntity.nextEntity = null;
 			}
-			child.owner = null;
-			
+			child.space = null;
+
 			return child;
 		}
-		
+
 		public function removeAll():void {
+			var child:Transform = firstChild;
+			while (child) {
+				if (entity.engine) {
+					entity.engine.entityRemoved(child.entity);
+				}
+				child = child.nextSibling;
+			}
+
+			if (firstChild) {
+				var ancestor:Transform = this;
+				while (ancestor &&
+						ancestor.entity.lastEntity == lastChild.entity.lastEntity) {
+					ancestor.entity.lastEntity = firstChild.entity.prevEntity;
+					ancestor = ancestor.space;
+				}
+			}
+
+			child = firstChild;
+			while (child) {
+				var nextSibling:Transform = child.nextSibling;
+				child.previousSibling = null;
+				child.nextSibling = null;
+				child.parent = null;
+
+				if (child.entity.prevEntity) {
+					child.entity.prevEntity.nextEntity = child.entity.lastEntity.nextEntity;
+					child.entity.prevEntity = null;
+				}
+				if (child.entity.lastEntity.nextEntity) {
+					child.entity.lastEntity.nextEntity.prevEntity = child.entity.prevEntity;
+					child.entity.lastEntity.nextEntity = null;
+				}
+				child.space = null;
+
+				child = nextSibling;
+			}
+
+			firstChild = null;
+			lastChild = null;
+			numChildren = 0;
 		}
 	}
 }

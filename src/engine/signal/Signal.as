@@ -11,14 +11,13 @@ package engine.signal
 		public var numListeners:uint = 0;
 		public var dispatching:Boolean;
 		public var valueType:Class;
-		
+
 		protected var head:Slot;
 		protected var addLater:Slot;
 
-		public function Signal(valueType:Class = null, eventTarget:IEventDispatcher = null,
-							   eventType:String = null, eventPriority:int = 0) {
+		public function Signal(valueType:Class = null, eventTarget:IEventDispatcher = null, eventType:String = null, eventPriority:int = 0) {
 			this.valueType = valueType ? valueType : Object;
-			
+
 			if (eventTarget && eventType) {
 				eventTarget.addEventListener(eventType, dispatch, false, eventPriority, true);
 			}
@@ -47,7 +46,7 @@ package engine.signal
 			var insert:Slot;
 			var before:Slot;
 			var after:Slot;
-			
+
 			if (dispatching) {
 				slot = new Slot();
 				slot.listener = listener;
@@ -126,7 +125,7 @@ package engine.signal
 			}
 
 			dispatching = true;
-			
+
 			var prev:Slot;
 			var slot:Slot = head;
 			while (slot) {
@@ -135,7 +134,7 @@ package engine.signal
 					// ====== Hold listener and resolve once ====== //
 
 					var listener:Function = slot.listener;
-					
+
 					if (slot.once) {
 						prev ? prev.next = slot.next : head = slot.next;
 						slot.next = null;
@@ -144,7 +143,7 @@ package engine.signal
 					}
 
 					// ====== Invoke listener with appropriate # of arguments ====== //
-					
+
 					if (listener.length == 1) {
 						listener(value);
 					} else {
@@ -154,9 +153,9 @@ package engine.signal
 				prev = slot;
 				slot = slot.next;
 			}
-			
+
 			dispatching = false;
-			
+
 			while (addLater) {
 				slot = addLater;
 				addLater = addLater.next;
@@ -165,7 +164,7 @@ package engine.signal
 				add(slot.listener, slot.once, slot.priority);
 			}
 		}
-		
+
 		public function removeAll():void {
 			head = null;
 		}

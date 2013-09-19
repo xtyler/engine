@@ -18,16 +18,18 @@ package engine.display
 		public var alpha:Number = 1;
 		public var mask:Display;
 		public var maskType:String;
-		
+
 		public var blendMode:String = BlendMode.NORMAL;
 		public var blendShader:Shader;
 		public var filtersEnabled:Boolean = true;
 		public var filters:Array;
-		
-		public var display:DisplayObject;
-		
+
+		public var target:DisplayObject;
+
+		// TODO: store state changes for DisplaySystem to apply
+
 		public function Display() {
 		}
-		
+
 	}
 }

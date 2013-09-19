@@ -10,7 +10,7 @@ package engine.render
 	{
 		public function Camera2D() {
 		}
-		
-		
+
+
 	}
 }

@@ -20,7 +20,7 @@ package engine.time
 		public static const UPDATE:uint = 1;
 		public static const FIXED_UPDATE:uint = 2;
 		public static const RENDER:uint = 4;
-		
+
 		public var total:Number = 0;
 		public var delta:Number = 0;
 		public var fixed:Number = 0;

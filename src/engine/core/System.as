@@ -13,9 +13,9 @@ package engine.core
 		public var engine:Engine;
 		public var prevSystem:System;
 		public var nextSystem:System;
-		
+
 		public var abstract:uint;
-		
+
 		public function System() {
 		}
 

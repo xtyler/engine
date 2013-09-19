@@ -8,7 +8,7 @@ package engine.render
 	{
 		[Required]
 		public var meshRenderer:MeshRenderer;
-		
+
 		[Required]
 		public var transform:Transform;
 
@@ -16,7 +16,7 @@ package engine.render
 		public var next:Render2DPart;
 
 		public static const required:Object = {
-			transform:Transform,
+			transform:   Transform,
 			meshRenderer:MeshRenderer
 		};
 	}

@@ -1,0 +1,36 @@
+
+JSON or XML src format
+generic to support custom systems
+generates binary or classes to compile
+
+supports runtime swappable 'parts' (skins/controls/content/what?)
+supports data Read, Update, Create, Delete
+supports triggers/actions
+
+* add entities & components to engine
+* add entities & components to another entity
+
+turn this into a SCREEN concept
+SCREENs come from a module (assets)
+SCREEN may show other modules assets
+
+...
+
+Tool:
+Project Library
+Shared Libraries (listed for use between projects, incl default sets, for "read-only" except when modified in source project)
+	- includes 'Symbols' or 'Templates' or 'Prefabs' or 'Widgets' or whatever
+	- any other media type or file: Image, Sound, SWC (sub-library of visual assets)
+
+Create:
+	- Entity
+	- primitives: ...
+	- defaults associated by media type (Image, Sound, DisplayObject)
+
+Update:
+	- Hierarchy
+	- Inspector (Properties panel)
+	- System-specific tooling (Animation, Layout, Data) 
+
+Project Build
+	- all files in modules each diffed against current state (previous build)

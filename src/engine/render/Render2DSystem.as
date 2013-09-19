@@ -11,7 +11,7 @@ package engine.render
 	{
 		public var render2DParts:Parts;
 		public var camera2DParts:Parts;
-		
+
 		public function Render2DSystem() {
 		}
 
@@ -19,20 +19,19 @@ package engine.render
 			render2DParts = engine.getParts(TransformPart);
 			camera2DParts = engine.getParts(Camera2DPart);
 		}
-		
+
 		override public function render():void {
-			
+
 			var camera2DPart:Camera2DPart = camera2DParts.head;
 			while (camera2DPart) {
-				
+
 				camera2DPart = camera2DPart.next;
 			}
-			
-			
-			
+
+
 			var render2DPart:TransformPart = render2DParts.head;
 			while (render2DPart) {
-				
+
 				render2DPart = render2DPart.next;
 			}
 		}

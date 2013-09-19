@@ -8,7 +8,7 @@ package engine.core
 	{
 		public var name:String;
 		public var type:Class;
-		
+
 		public var next:Definition;
 	}
 }

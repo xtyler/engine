@@ -11,14 +11,14 @@ package engine.core
 	{
 		public var invalidated:Boolean;
 		public var partType:Class;
-		public var required:PropDefinition;
+		public var required:Definition;
 
 		public var partLookup:Dictionary = new Dictionary();
 		public var partPool:*;
-		
+
 		public var head:*;
 		public var tail:*;
-		
+
 		public var next:Parts;
 
 		public function Parts(partType:Class) {
@@ -27,11 +27,11 @@ package engine.core
 			if (!("prev" in partPool) || !("next" in partPool)) {
 				throw new Error("Part " + getQualifiedClassName(partType).split("::").pop() + " must implement public variables 'prev' and 'next'.");
 			}
-			
+
 			if ("required" in partType) {
 				var definition:Object = partType.required;
 				for (var name:String in definition) {
-					var required:PropDefinition = new PropDefinition();
+					var required:Definition = new Definition();
 					required.name = name;
 					required.type = definition[name];
 					required.next = this.required;
@@ -54,10 +54,10 @@ package engine.core
 			}
 
 			// assign required components
-			var required:PropDefinition = this.required;
+			var required:Definition = this.required;
 			while (required) {
 				var type:Class = required.type;
-				
+
 				var component:Component = entity.firstComponent;
 				while (component) {
 					if (component is type) {
@@ -66,13 +66,13 @@ package engine.core
 					}
 					component = component.nextComponent;
 				}
-				
+
 				if (!component) {
 					return null;
 				}
 				required = required.next;
 			}
-			
+
 			var before:*;
 			var beforeEntity:Entity = entity.nextEntity;
 			while (beforeEntity) {
@@ -114,24 +114,24 @@ package engine.core
 				return;
 			}
 
-			var required:PropDefinition = this.required;
+			var required:Definition = this.required;
 			while (required) {
 				part[required.name] = null;
 				required = required.next;
 			}
-			
+
 			if (part.prev) {
 				part.prev.next = part.next;
 			} else {
 				head = part.next;
 			}
-			
+
 			if (part.next) {
 				part.next.prev = part.prev;
 			} else {
 				tail = part.prev;
 			}
-			
+
 			part.prev = null;
 			part.next = partPool;
 			partPool = part;
@@ -140,12 +140,4 @@ package engine.core
 			invalidated = true;
 		}
 	}
-}
-
-internal class PropDefinition
-{
-	public var name:String;
-	public var type:Class;
-
-	public var next:PropDefinition;
 }

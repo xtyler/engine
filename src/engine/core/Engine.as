@@ -121,15 +121,15 @@ package engine.core
 			} else if (system.engine) {
 				system.engine.removeSystem(system);
 			}
-			
+
 			// check to ensure System type is unique
-			var type:Class = system.constructor;
-			var system:System = firstSystem;
-			while (system) {
-				if (system is type) {
-					return system;
+			var type:Class = system['constructor'];
+			var search:System = firstSystem;
+			while (search) {
+				if (search is type) {
+					return search;
 				}
-				system = system.nextSystem;
+				search = search.nextSystem;
 			}
 
 			if (before && before.engine == this) {

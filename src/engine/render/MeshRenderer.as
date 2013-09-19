@@ -10,7 +10,7 @@ package engine.render
 	{
 		public var mesh:Object;
 		public var material:Object;
-		
+
 		public function MeshRenderer() {
 		}
 	}

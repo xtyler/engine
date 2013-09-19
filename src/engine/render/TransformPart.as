@@ -10,9 +10,9 @@ package engine.render
 	{
 		[Required]
 		public var transform:Transform;
-		
+
 		public var worldMatrix:Matrix3D;
-		
+
 		public var prev:TransformPart;
 		public var next:TransformPart;
 

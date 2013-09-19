@@ -8,15 +8,15 @@ package engine.render
 	{
 		[Required]
 		public var camera2D:Camera2D;
-		
+
 		[Required]
 		public var transform:Transform;
-		
+
 		public var prev:Camera2DPart;
 		public var next:Camera2DPart;
-		
+
 		public static const required:Object = {
-			camera2D:Camera2D,
+			camera2D: Camera2D,
 			transform:Transform
 		};
 	}
