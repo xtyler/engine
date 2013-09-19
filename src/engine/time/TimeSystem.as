@@ -21,7 +21,7 @@ package engine.time
 		public static const FIXED_UPDATE:uint = 2;
 		public static const RENDER:uint = 4;
 
-		public var total:Number = 0;
+		public var current:Number = 0;
 		public var delta:Number = 0;
 		public var fixed:Number = 0;
 		public var fixedDelta:Number = 0.02;
@@ -50,7 +50,7 @@ package engine.time
 				var deltaMs:Number = scale * (currentMs - systemMs);
 				totalMs += deltaMs;
 				delta = deltaMs / 1000;
-				total = totalMs / 1000;
+				current = totalMs / 1000;
 			}
 			systemMs = currentMs;
 

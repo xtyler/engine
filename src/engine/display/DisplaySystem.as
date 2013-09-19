@@ -12,7 +12,7 @@ package engine.display
 	public class DisplaySystem extends System
 	{
 		public var displayParts:Parts;
-
+		
 		public function DisplaySystem() {
 		}
 

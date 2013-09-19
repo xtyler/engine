@@ -121,7 +121,7 @@ package engine.core
 			} else if (system.engine) {
 				system.engine.removeSystem(system);
 			}
-
+			
 			// check to ensure System type is unique
 			var type:Class = system['constructor'];
 			var search:System = firstSystem;
